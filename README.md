@@ -1,400 +1,445 @@
-# Medical AI Lab Analysis - Full Stack Application
+# Medical AI Lab Analysis - Setup Instructions
 
 ## 🏗️ Architecture Overview
-
 ```
-Frontend (React Native) ↔ Backend (FastAPI) ↔ AI Models (Ollama)
-       ↗               ↘
-Mobile App          Document Processing
-                     (PDF/Image Analysis)
+React Native Mobile App ↔ FastAPI Backend ↔ Ollama AI Models
 ```
 
-## 🔧 Backend Setup (FastAPI)
+## 🔧 BACKEND SETUP (FastAPI)
 
 ### 1. Install System Dependencies
 
 **Windows:**
-- Download Tesseract: https://github.com/UB-Mannheim/tesseract/wiki
-- Download Ollama: https://ollama.ai/
+- Download and install Tesseract OCR from official website
+- Download and install Ollama from official website
 
 **macOS:**
 ```bash
 brew install tesseract ollama
 ```
 
-**Ubuntu/Debian:**
+**Linux (Ubuntu/Debian):**
 ```bash
-sudo apt update && sudo apt install tesseract-ocr tesseract-ocr-fra
+sudo apt update
+sudo apt install tesseract-ocr tesseract-ocr-fra
 curl -fsSL https://ollama.ai/install.sh | sh
 ```
 
-### 2. Backend Installation
+### 2. Setup Python Environment
 
 ```bash
-# Create and activate virtual environment
+# Create virtual environment
 python -m venv medical_ai_env
-source medical_ai_env/bin/activate  # Windows: medical_ai_env\Scripts\activate
 
-# Install Python dependencies
+# Activate environment
+# Windows: medical_ai_env\Scripts\activate
+# macOS/Linux: source medical_ai_env/bin/activate
+
+# Install Python packages
 pip install fastapi uvicorn pdfplumber python-multipart Pillow pytesseract pydantic requests
 ```
 
 ### 3. Setup AI Models
 
 ```bash
-# Start Ollama service
+# Start Ollama service (keep this running)
 ollama serve
 
-# In a new terminal, download models:
+# In a NEW terminal, download AI models:
 ollama pull llama2:7b
-# OR for medical analysis:
-ollama pull medllama2
 ```
 
 ### 4. Run Backend Server
 
 ```bash
+# Make sure you're in the backend directory with main.py
 python main.py
 ```
 
-**Backend runs on:** http://localhost:8000
+**Backend will run on:** http://localhost:8000
 
 ### 5. Verify Backend
 
-```bash
-# Check services
-curl http://localhost:8000/health
-curl http://localhost:11434/api/tags
-```
+- Open browser to: http://localhost:8000/docs
+- You should see interactive API documentation
+- Check http://localhost:8000/health for status
 
 ---
 
-## 📱 Frontend Setup (React Native)
+## 📱 FRONTEND SETUP (React Native)
 
-### 1. Prerequisites
+### 1. Prerequisites Installation
 
-```bash
-# Install Node.js and npm
-# Install React Native CLI
-npm install -g react-native-cli
+**Install required tools:**
+- Node.js (version 14 or higher)
+- React Native CLI: `npm install -g react-native-cli`
+- Android Studio (for Android development)
+- Xcode (for iOS development, macOS only)
 
-# For iOS (macOS only)
-brew install cocoapods
-
-# For Android
-# Install Android Studio and SDK
-```
-
-### 2. Create React Native App
+### 2. Create React Native Project
 
 ```bash
 # Create new React Native project
 npx react-native init MedicalAIMobile
 cd MedicalAIMobile
 
-# Install dependencies
+# Install required dependencies
 npm install axios react-native-document-picker react-native-image-picker
 npm install @react-navigation/native @react-navigation/stack
 npm install react-native-screens react-native-safe-area-context
 
-# For iOS
+# For iOS only (macOS)
 cd ios && pod install && cd ..
 ```
 
-### 3. Frontend Code Structure
+### 3. Configure Network Security
 
-Create `src/components/MedicalScanner.js`:
+**For Android:**
+- Edit `android/app/src/main/AndroidManifest.xml`
+- Add internet permission
+- Configure network security for localhost
 
-```javascript
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
-import { launchImageLibrary } from 'react-native-image-picker';
-import DocumentPicker from 'react-native-document-picker';
-import axios from 'axios';
+**For iOS:**
+- Configure App Transport Security in Xcode
+- Allow arbitrary loads for local development
 
-const API_BASE_URL = 'http://localhost:8000'; // Change to your backend IP
+### 4. Update API Configuration
 
-const MedicalScanner = () => {
-  const [loading, setLoading] = useState(false);
-  const [results, setResults] = useState(null);
+- Locate the API configuration file in your React Native project
+- Set the backend URL to your computer's IP address
+- Example: `http://192.168.1.100:8000` (replace with your actual IP)
 
-  const uploadMedicalDocument = async (file) => {
-    setLoading(true);
-    try {
-      const formData = new FormData();
-      formData.append('file', {
-        uri: file.uri,
-        type: file.type,
-        name: file.fileName || 'medical_document.jpg',
-      });
+### 5. Run Mobile App
 
-      const response = await axios.post(
-        `${API_BASE_URL}/extract-results`,
-        formData,
-        {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-          timeout: 60000, // 60 seconds timeout
-        }
-      );
-
-      setResults(response.data);
-      Alert.alert('Success', 'Medical analysis completed!');
-    } catch (error) {
-      console.error('Upload error:', error);
-      Alert.alert('Error', 'Failed to analyze document');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const pickImage = () => {
-    launchImageLibrary(
-      {
-        mediaType: 'photo',
-        includeBase64: false,
-        maxHeight: 2000,
-        maxWidth: 2000,
-      },
-      (response) => {
-        if (response.assets && response.assets[0]) {
-          uploadMedicalDocument(response.assets[0]);
-        }
-      }
-    );
-  };
-
-  const pickDocument = async () => {
-    try {
-      const res = await DocumentPicker.pick({
-        type: [DocumentPicker.types.pdf],
-      });
-      uploadMedicalDocument(res[0]);
-    } catch (err) {
-      if (DocumentPicker.isCancel(err)) {
-        // User cancelled the picker
-      } else {
-        Alert.alert('Error', 'Failed to pick document');
-      }
-    }
-  };
-
-  return (
-    <View style={{ flex: 1, padding: 20 }}>
-      <Text style={{ fontSize: 24, fontWeight: 'bold', marginBottom: 20 }}>
-        Medical Lab Analyzer
-      </Text>
-
-      {loading && <ActivityIndicator size="large" />}
-
-      <TouchableOpacity
-        style={{
-          backgroundColor: '#007AFF',
-          padding: 15,
-          borderRadius: 10,
-          marginBottom: 10,
-        }}
-        onPress={pickImage}
-        disabled={loading}
-      >
-        <Text style={{ color: 'white', textAlign: 'center' }}>
-          📷 Upload Image
-        </Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        style={{
-          backgroundColor: '#34C759',
-          padding: 15,
-          borderRadius: 10,
-          marginBottom: 20,
-        }}
-        onPress={pickDocument}
-        disabled={loading}
-      >
-        <Text style={{ color: 'white', textAlign: 'center' }}>
-          📄 Upload PDF
-        </Text>
-      </TouchableOpacity>
-
-      {results && (
-        <View style={{ marginTop: 20 }}>
-          <Text style={{ fontSize: 18, fontWeight: 'bold' }}>Results:</Text>
-          <Text>Patient: {results.donnees_extractes?.informations_patient?.nom}</Text>
-          <Text>Hemoglobin: {results.donnees_extractes?.resultats_hemobiologie?.hemoglobine?.valeur}</Text>
-          {/* Add more result display as needed */}
-        </View>
-      )}
-    </View>
-  );
-};
-
-export default MedicalScanner;
-```
-
-### 4. Update App.js
-
-```javascript
-import React from 'react';
-import { NavigationContainer } from '@react-navigation/native';
-import { createStackNavigator } from '@react-navigation/stack';
-import MedicalScanner from './src/components/MedicalScanner';
-
-const Stack = createStackNavigator();
-
-const App = () => {
-  return (
-    <NavigationContainer>
-      <Stack.Navigator>
-        <Stack.Screen 
-          name="MedicalScanner" 
-          component={MedicalScanner}
-          options={{ title: 'Lab Analysis' }}
-        />
-      </Stack.Navigator>
-    </NavigationContainer>
-  );
-};
-
-export default App;
-```
-
-### 5. Android Network Security
-
-Add `android/app/src/main/AndroidManifest.xml`:
-```xml
-<uses-permission android:name="android.permission.INTERNET" />
-<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
-```
-
-Add `android/app/src/main/res/xml/network_security_config.xml`:
-```xml
-<?xml version="1.0" encoding="utf-8"?>
-<network-security-config>
-    <domain-config cleartextTrafficPermitted="true">
-        <domain includeSubdomains="true">localhost</domain>
-        <domain includeSubdomains="true">10.0.2.2</domain> <!-- Android Emulator -->
-    </domain-config>
-</network-security-config>
-```
-
-Update `android/app/src/main/AndroidManifest.xml`:
-```xml
-<application
-    android:networkSecurityConfig="@xml/network_security_config"
-    ...>
-```
-
-### 6. Run Mobile App
-
-**Android:**
+**For Android:**
 ```bash
 npx react-native run-android
 ```
 
-**iOS:**
+**For iOS:**
 ```bash
 npx react-native run-ios
 ```
 
 ---
 
-## 🌐 Network Configuration
+## 🌐 NETWORK CONFIGURATION
 
-### For Physical Device Testing
+### 1. Find Your Computer's IP Address
 
-1. **Find your computer's IP:**
-   ```bash
-   # Windows
-   ipconfig
+**Windows:**
+```cmd
+ipconfig
+```
 
-   # macOS/Linux
-   ifconfig
-   ```
+**macOS/Linux:**
+```bash
+ifconfig
+```
 
-2. **Update frontend API URL:**
-   ```javascript
-   const API_BASE_URL = 'http://YOUR_COMPUTER_IP:8000';
-   ```
+### 2. Update Mobile App Configuration
 
-3. **Backend CORS setup (in main.py):**
-   ```python
-   from fastapi.middleware.cors import CORSMiddleware
+- Replace `localhost` with your computer's IP address in the mobile app
+- Ensure mobile device and computer are on same WiFi network
 
-   app.add_middleware(
-       CORSMiddleware,
-       allow_origins=["http://localhost:3000", "http://your-phone-ip"],
-       allow_credentials=True,
-       allow_methods=["*"],
-       allow_headers=["*"],
-   )
-   ```
+### 3. Configure Backend CORS
+
+- Backend should accept requests from your mobile app's IP
+- This is usually configured in the main.py file
 
 ---
 
-## 🚀 Running the Full Stack
+## 🚀 RUNNING THE FULL APPLICATION
 
-### Step 1: Start Backend
+### Step 1: Start AI Service
 ```bash
-# Terminal 1 - Start Ollama
+# Terminal 1 - Start Ollama (keep running)
 ollama serve
+```
 
-# Terminal 2 - Start FastAPI
+### Step 2: Start Backend Server
+```bash
+# Terminal 2 - Start FastAPI backend (keep running)
 python main.py
 ```
 
-### Step 2: Start Frontend
+### Step 3: Start Mobile App
 ```bash
-# Terminal 3 - Start React Native
+# Terminal 3 - Start React Native Metro bundler
 npx react-native start
 
-# Terminal 4 - Run on device/emulator
+# Terminal 4 - Run on device (new terminal)
 npx react-native run-android
-# OR
+# OR for iOS
 npx react-native run-ios
 ```
 
-### Step 3: Test the Flow
-1. Open mobile app
-2. Tap "Upload Image" or "Upload PDF"
-3. Select a medical lab report
-4. Wait for AI analysis
-5. View results on mobile
+---
+
+## 📱 USING THE APPLICATION
+
+1. **Open the mobile app** on your device/emulator
+2. **Tap "Upload Image"** to select a medical lab report image from your gallery
+3. **OR Tap "Upload PDF"** to select a PDF lab report
+4. **Wait for processing** - the app will send to backend for AI analysis
+5. **View results** - see medical data and dietary recommendations
 
 ---
 
-## 📱 Mobile App Features
+## 🔧 TROUBLESHOOTING
 
-- **Document Upload**: Camera roll or file picker
-- **PDF Support**: Direct PDF file upload
-- **Real-time Analysis**: Progress indicators
-- **Results Display**: Structured medical data
-- **AI Recommendations**: Dietary and lifestyle advice
+### Backend Issues:
+- Ensure Ollama is running: `ollama serve`
+- Check port 8000 is available
+- Verify Python dependencies are installed
+
+### Frontend Issues:
+- Ensure Node.js is installed
+- Check Android Studio/Xcode setup
+- Verify same WiFi network for backend and mobile
+
+### Network Issues:
+- Check computer firewall settings
+- Verify IP address in mobile app configuration
+- Ensure mobile device can reach computer's IP
+
+### Connection Test:
+```bash
+# Test backend from mobile browser
+http://YOUR_COMPUTER_IP:8000/health
+```
 
 ---
 
-## 🔧 Troubleshooting
+## ✅ VERIFICATION CHECKLIST
 
-### Common Issues:
+- [ ] Ollama service running
+- [ ] Backend API accessible at http://localhost:8000/docs
+- [ ] Mobile app builds without errors
+- [ ] Mobile device and computer on same network
+- [ ] IP address correctly configured in mobile app
+- [ ] File upload permissions granted on mobile
 
-1. **Network Connection:**
-   - Ensure same WiFi network for backend and mobile
-   - Check firewall settings
-   - Use correct IP address in frontend
+Your full-stack medical AI application is now ready to use! 🎉# Medical AI Lab Analysis - Setup Instructions
 
-2. **Android Emulator:**
-   - Use `10.0.2.2` for localhost
-   - Enable network permissions
+## 🏗️ Architecture Overview
+```
+React Native Mobile App ↔ FastAPI Backend ↔ Ollama AI Models
+```
 
-3. **File Upload:**
-   - Check file size limits
-   - Verify supported formats (PDF, JPEG, PNG)
+## 🔧 BACKEND SETUP (FastAPI)
 
-4. **Backend Access:**
-   ```bash
-   # Test backend directly
-   curl http://localhost:8000/health
-   ```
+### 1. Install System Dependencies
 
-Your full-stack medical AI application is now ready! 🎉
+**Windows:**
+- Download and install Tesseract OCR from official website
+- Download and install Ollama from official website
+
+**macOS:**
+```bash
+brew install tesseract ollama
+```
+
+**Linux (Ubuntu/Debian):**
+```bash
+sudo apt update
+sudo apt install tesseract-ocr tesseract-ocr-fra
+curl -fsSL https://ollama.ai/install.sh | sh
+```
+
+### 2. Setup Python Environment
+
+```bash
+# Create virtual environment
+python -m venv medical_ai_env
+
+# Activate environment
+# Windows: medical_ai_env\Scripts\activate
+# macOS/Linux: source medical_ai_env/bin/activate
+
+# Install Python packages
+pip install fastapi uvicorn pdfplumber python-multipart Pillow pytesseract pydantic requests
+```
+
+### 3. Setup AI Models
+
+```bash
+# Start Ollama service (keep this running)
+ollama serve
+
+# In a NEW terminal, download AI models:
+ollama pull llama2:7b
+```
+
+### 4. Run Backend Server
+
+```bash
+# Make sure you're in the backend directory with main.py
+python main.py
+```
+
+**Backend will run on:** http://localhost:8000
+
+### 5. Verify Backend
+
+- Open browser to: http://localhost:8000/docs
+- You should see interactive API documentation
+- Check http://localhost:8000/health for status
+
+---
+
+## 📱 FRONTEND SETUP (React Native)
+
+### 1. Prerequisites Installation
+
+**Install required tools:**
+- Node.js (version 14 or higher)
+- React Native CLI: `npm install -g react-native-cli`
+- Android Studio (for Android development)
+- Xcode (for iOS development, macOS only)
+
+### 2. Create React Native Project
+
+```bash
+# Create new React Native project
+npx react-native init MedicalAIMobile
+cd MedicalAIMobile
+
+# Install required dependencies
+npm install axios react-native-document-picker react-native-image-picker
+npm install @react-navigation/native @react-navigation/stack
+npm install react-native-screens react-native-safe-area-context
+
+# For iOS only (macOS)
+cd ios && pod install && cd ..
+```
+
+### 3. Configure Network Security
+
+**For Android:**
+- Edit `android/app/src/main/AndroidManifest.xml`
+- Add internet permission
+- Configure network security for localhost
+
+**For iOS:**
+- Configure App Transport Security in Xcode
+- Allow arbitrary loads for local development
+
+### 4. Update API Configuration
+
+- Locate the API configuration file in your React Native project
+- Set the backend URL to your computer's IP address
+- Example: `http://192.168.1.100:8000` (replace with your actual IP)
+
+### 5. Run Mobile App
+
+**For Android:**
+```bash
+npx react-native run-android
+```
+
+**For iOS:**
+```bash
+npx react-native run-ios
+```
+
+---
+
+## 🌐 NETWORK CONFIGURATION
+
+### 1. Find Your Computer's IP Address
+
+**Windows:**
+```cmd
+ipconfig
+```
+
+**macOS/Linux:**
+```bash
+ifconfig
+```
+
+### 2. Update Mobile App Configuration
+
+- Replace `localhost` with your computer's IP address in the mobile app
+- Ensure mobile device and computer are on same WiFi network
+
+### 3. Configure Backend CORS
+
+- Backend should accept requests from your mobile app's IP
+- This is usually configured in the main.py file
+
+---
+
+## 🚀 RUNNING THE FULL APPLICATION
+
+### Step 1: Start AI Service
+```bash
+# Terminal 1 - Start Ollama (keep running)
+ollama serve
+```
+
+### Step 2: Start Backend Server
+```bash
+# Terminal 2 - Start FastAPI backend (keep running)
+python main.py
+```
+
+### Step 3: Start Mobile App
+```bash
+# Terminal 3 - Start React Native Metro bundler
+npx react-native start
+
+# Terminal 4 - Run on device (new terminal)
+npx react-native run-android
+# OR for iOS
+npx react-native run-ios
+```
+
+---
+
+## 📱 USING THE APPLICATION
+
+1. **Open the mobile app** on your device/emulator
+2. **Tap "Upload Image"** to select a medical lab report image from your gallery
+3. **OR Tap "Upload PDF"** to select a PDF lab report
+4. **Wait for processing** - the app will send to backend for AI analysis
+5. **View results** - see medical data and dietary recommendations
+
+---
+
+## 🔧 TROUBLESHOOTING
+
+### Backend Issues:
+- Ensure Ollama is running: `ollama serve`
+- Check port 8000 is available
+- Verify Python dependencies are installed
+
+### Frontend Issues:
+- Ensure Node.js is installed
+- Check Android Studio/Xcode setup
+- Verify same WiFi network for backend and mobile
+
+### Network Issues:
+- Check computer firewall settings
+- Verify IP address in mobile app configuration
+- Ensure mobile device can reach computer's IP
+
+### Connection Test:
+```bash
+# Test backend from mobile browser
+http://YOUR_COMPUTER_IP:8000/health
+```
+
+---
+
+## ✅ VERIFICATION CHECKLIST
+
+- [ ] Ollama service running
+- [ ] Backend API accessible at http://localhost:8000/docs
+- [ ] Mobile app builds without errors
+- [ ] Mobile device and computer on same network
+- [ ] IP address correctly configured in mobile app
+- [ ] File upload permissions granted on mobile
+
+Your full-stack medical AI application is now ready to use! 🎉
