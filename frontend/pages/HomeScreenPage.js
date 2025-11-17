@@ -179,7 +179,7 @@ const uploadFileToAPI = async () => {
     });
 
     // Build URL with query parameters as expected by your FastAPI
-    const baseURL = 'http://192.168.1.16:8000/extract-results';
+    const baseURL = 'http://YOUR_COMPUTER_IP:8000/extract-results';
     const params = new URLSearchParams({
       language: 'fra',
       use_ai: 'true',
@@ -264,7 +264,7 @@ const uploadFileToAPI = async () => {
     let errorMessage = `Error: ${error.message}\n\n`;
     
     if (error.message.includes('Network request failed')) {
-      errorMessage += `Cannot connect to FastAPI server at 192.168.1.29:8000\n\nPlease ensure:
+      errorMessage += `Cannot connect to FastAPI server atYOUR_COMPUTER_IP:8000\n\nPlease ensure:
 • FastAPI server is running: uvicorn main:app --reload --host 0.0.0.0 --port 8000
 • Both devices are on same WiFi network
 • Firewall allows port 8000`;
