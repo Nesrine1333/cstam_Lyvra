@@ -107,7 +107,7 @@ cd ios && pod install && cd ..
 
 - Locate the API configuration file in your React Native project
 - Set the backend URL to your computer's IP address
-- Example: `http://192.168.1.100:8000` (replace with your actual IP)
+- Example: `http://exemple:8000` (replace with your actual IP)
 
 ### 5. Run Mobile App
 
@@ -329,7 +329,7 @@ cd ios && pod install && cd ..
 
 - Locate the API configuration file in your React Native project
 - Set the backend URL to your computer's IP address
-- Example: `http://192.168.1.100:8000` (replace with your actual IP)
+- Example: `http://YOUR_COMPUTER_IP:8000` (replace with your actual IP)
 
 ### 5. Run Mobile App
 
